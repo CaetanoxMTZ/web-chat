@@ -1,0 +1,138 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Chat em Tempo Real</title>
+    <style>
+        body {
+            font-family: 'Helvetica Neue', Arial, sans-serif;
+            margin: 0;
+            padding: 0;
+            background-color: #fafafa;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+        }
+        .chat-container {
+            width: 400px;
+            height: 600px;
+            border: 1px solid #dbdbdb;
+            background-color: #ffffff;
+            display: flex;
+            flex-direction: column;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        }
+        .chat-header {
+            padding: 15px;
+            border-bottom: 1px solid #dbdbdb;
+            font-weight: bold;
+            text-align: center;
+        }
+        .chat-box {
+            flex: 1;
+            padding: 15px;
+            overflow-y: auto;
+        }
+        .chat-message {
+            margin-bottom: 15px;
+            padding: 10px;
+            border-radius: 15px;
+            background-color: #efefef;
+            max-width: 80%;
+        }
+        .chat-message.sender {
+            background-color: #007bff;
+            color: #ffffff;
+            align-self: flex-end;
+        }
+        .chat-message.receiver {
+            background-color: #efefef;
+            align-self: flex-start;
+        }
+        .chat-input {
+            display: flex;
+            border-top: 1px solid #dbdbdb;
+            padding: 10px;
+        }
+        .chat-input input {
+            flex: 1;
+            padding: 10px;
+            border: 1px solid #dbdbdb;
+            border-radius: 25px;
+            outline: none;
+            box-sizing: border-box;
+        }
+        .chat-input button {
+            margin-left: 10px;
+            padding: 10px 20px;
+            border: none;
+            border-radius: 25px;
+            background-color: #007bff;
+            color: #ffffff;
+            cursor: pointer;
+        }
+    </style>
+</head>
+<body>
+    <div class="chat-container">
+        <div class="chat-header">Chat</div>
+        <div id="chat-box" class="chat-box"></div>
+        <div class="chat-input">
+            <input type="text" id="username-input" placeholder="Informe usuário..." style="margin-bottom: 10px;">
+            <input type="text" id="message-input" placeholder="Escreva uma mensagem..." style="display: none;">
+            <button id="send-button" style="display: none;">Enviar</button>
+        </div>
+    </div>
+    <script>
+        let ws;
+        const chatBox = document.getElementById('chat-box');
+        const messageInput = document.getElementById('message-input');
+        const sendButton = document.getElementById('send-button');
+        const usernameInput = document.getElementById('username-input');
+
+        let username;
+
+        function initializeWebSocket(username) {
+            ws = new WebSocket(`ws://localhost:4040/ws/${username}`);
+            ws.onmessage = function(event) {
+                const data = JSON.parse(event.data);
+                const message = document.createElement('div');
+                message.className = data.username === username ? 'chat-message sender' : 'chat-message receiver';
+                message.textContent = `${data.username}: ${data.message}`;
+                chatBox.appendChild(message);
+                chatBox.scrollTop = chatBox.scrollHeight;
+            };
+        }
+
+        sendButton.addEventListener('click', function() {
+            sendMessage();
+        });
+
+        messageInput.addEventListener('keypress', function(event) {
+            if (event.key === 'Enter') {
+                sendMessage();
+            }
+        });
+
+        usernameInput.addEventListener('keypress', function(event) {
+            if (event.key === 'Enter') {
+                username = usernameInput.value.trim();
+                if (username) {
+                    usernameInput.style.display = 'none';
+                    messageInput.style.display = 'block';
+                    sendButton.style.display = 'block';
+                    initializeWebSocket(username);
+                }
+            }
+        });
+
+        function sendMessage() {
+            const message = messageInput.value.trim();
+            if (message) {
+                ws.send(message);
+                messageInput.value = '';
+            }
+        }
+    </script>
+</body>
+</html>
